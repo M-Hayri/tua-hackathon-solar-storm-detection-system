@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uzay Havası Erken Uyarı Sistemi</title>
+    <!-- Leaflet CSS (Gerçek GIS Haritası) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+    
+    <!-- HEADER -->
+    <header>
+        <div>
+            <h1>TUA KONTROL MERKEZİ</h1>
+            <span class="subtitle">Uzay Havası Tahmin ve Otonom Savunma Ağı</span>
+        </div>
+        <button id="wargame-toggle" class="btn-wargame">Simülasyon / Tatbikat Modu</button>
+    </header>
+
+    <!-- TOP GRID: SUN + MAP -->
+    <div class="grid-top">
+        
+        <!-- SOL SÜTUN: SADECE GÖRSEL YAPAY ZEKA (SUN IMAGE) -->
+        <section class="panel" style="display:flex; flex-direction:column;">
+            <h2 class="panel-title">Manyetik Aktif Bölge Analizi</h2>
+            <div class="sun-image-container" style="flex:1;">
+                <img id="heatmap_img" src="http://127.0.0.1:8000/static/current_heatmap.png" alt="Grad-CAM" class="sun-image" style="height:100%; object-fit:cover;">
+                <div class="crosshair"></div>
+                <div class="scan-line"></div>
+            </div>
+        </section>
+
+        <!-- SAĞ SÜTUN: YAPAY ZEKA VERİLERİ (ÜSTTE) + HARİTA (ALTTA) -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- YAPAY ZEKA VERİ PANELİ (HARİTANIN ÜSTÜNDE) -->
+            <section class="panel">
+                <div class="data-feed">
+                    <div class="threat-banner" id="banner-box">
+                        <span class="threat-title">OTONOM TESPİT: TCN + CaaM ÇIKTISI</span>
+                        <span class="threat-level-value red-alert-text" id="api-threat-level">BAĞLANILIYOR...</span>
+                    </div>
+
+                    <div class="ai-live-container">
+                        <div class="ai-metric">
+                            <span class="ai-label">1D-CNN Fırtına İhtimali (Probability)</span>
+                            <span class="ai-val highlight-blue" id="api-ai-prob">%0.00</span>
+                        </div>
+                        <div class="ai-module-box">
+                            <h4 id="api-caam-status">CaaM: Veri Ayrıştırılıyor...</h4>
+                            <div class="caam-logs">
+                                <span class="log-title">Kesin Tetikleyiciler (Causal Triggers):</span>
+                                <ul id="api-causal-list" class="caam-list causal-list"><li>Bekleniyor...</li></ul>
+                                <span class="log-title" style="margin-top:5px;">Filtrelenen Parazitler (Confounders):</span>
+                                <ul id="api-confound-list" class="caam-list confound-list"><li>Bekleniyor...</li></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GIS MAP PANELİ (VERİLERİN ALTINDA) -->
+            <section class="panel" style="flex:1; display:flex; flex-direction:column;">
+                <h2 class="panel-title">Küresel Etki Haritası (GIS)</h2>
+                <div class="map-tabs">
+                    <button class="map-tab active" data-layer="aviation">Kutup Uçuşları (Polar)</button>
+                    <button class="map-tab" data-layer="submarine">Denizaltı Kabloları</button>
+                    <button class="map-tab" data-layer="leo">LEO Uydu Ağları</button>
+                </div>
+                <div class="map-visual" id="mock-map-container" style="padding:0; flex:1; min-height: 350px;">
+                    <!-- Leaflet Haritası -->
+                    <div id="gis-map" style="width: 100%; height: 100%; min-height: 350px; z-index: 1;"></div>
+                </div>
+            </section>
+
+        </div> <!-- /Sağ Sütun Wrapper -->
+        
+    </div> <!-- /grid-top -->
+
+    <!-- TERMINAL: MITIGATION ACTIONS -->
+    <section class="panel mitigation-panel">
+        <h2 class="panel-title">Otonom Korunma Protokolleri (Mitigation Terminal)</h2>
+        <div class="terminal-window" id="terminal_output">
+            <!-- Typewriter output here -->
+        </div>
+    </section>
+
+    <!-- ASSET HEALTH -->
+    <section class="panel asset-health-panel">
+        <h2 class="panel-title">Fırtına Sonrası Varlık Sağlığı (Post-Event Asset Health)</h2>
+        <div class="health-bars" id="health-container">
+            <!-- Populated by JS -->
+        </div>
+    </section>
+
+    <!-- WARGAMING DASHBOARD -->
+    <section id="wargame-dashboard-view">
+        <div class="wargame-banner">
+            <h2>Kriz Senaryosu: Carrington Tipi Mega Fırtına Devrede</h2>
+        </div>
+        
+        <div class="wargame-widgets">
+            <div class="widget">
+                <div class="widget-title">Küresel Ekonomik Kayıp Tahmini</div>
+                <div class="widget-value" id="econ-loss-val">$0.00 Milyar</div>
+            </div>
+            <div class="widget">
+                <div class="widget-title">Kurumsal Kurtarma Süresi (ERT)</div>
+                <div class="widget-value" id="ert-val">T-Minus 00:00:00</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-title">Kara Başlatma (Black-Start) Akış Şeması</h2>
+            <div class="flowchart">
+                <div class="flow-step" id="step-1">1. Şebeke Ayrışması (Islanding) Modu Onayı</div>
+                <div class="flow-arrow">►</div>
+                <div class="flow-step" id="step-2">2. Kritik Frekans Dengelemesi (Reserve Power)</div>
+                <div class="flow-arrow">►</div>
+                <div class="flow-step" id="step-3">3. Senkronizasyon (Phase Matching)</div>
+                <div class="flow-arrow">►</div>
+                <div class="flow-step" id="step-4">4. Kademeli Yük Bağlantısı (Load Restoration)</div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
